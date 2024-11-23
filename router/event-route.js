@@ -1,12 +1,10 @@
-import { startGame, disconnect, revealCell, cashOut } from '../services/game-event.js';
+import { placeBet, disconnect} from '../services/game-event.js';
 
 export const registerEvents = async (socket) => {
     socket.on('message', (data) => {
         const event = data.split(':')
         switch (event[0]) {
-            case 'SG': return startGame(socket, event.slice(1, event.length));
-            case 'RC': return revealCell(socket, event.slice(1, event.slice(1, event.length)));
-            case 'CO': return cashOut(socket);
+            case 'PB': return placeBet(socket, event.slice(1, event.length));
         }
     })
     socket.on('disconnect', ()=> disconnect(socket));

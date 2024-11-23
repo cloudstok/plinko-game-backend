@@ -26,7 +26,6 @@ export const updateBalanceFromAccount = async(data, key, playerDetails) => {
     try {
         const webhookData = await prepareDataForWebhook({ ...data, game_id: playerDetails.game_id }, key);
         if(key === 'CREDIT'){
-            thirdPartyLogger.info(JSON.stringify({ logId: generateUUIDv7(), webhookData, playerDetails }));
             await sendToQueue('', 'games_cashout', JSON.stringify({ ...webhookData, operatorId: playerDetails.operatorId, token: playerDetails.token}));
             return true;
         }
@@ -76,14 +75,14 @@ export const prepareDataForWebhook = async(betObj, key) => {
         switch (key) {
             case "DEBIT":
                 obj.amount = bet_amount,
-                obj.description = `${bet_amount} debited for Mines game for bet_id ${id}`;
+                obj.description = `${bet_amount} debited for Plinko game for Round ${id}`;
                 obj.bet_id = id;
                 obj.txn_type = 0;
                 break;
             case "CREDIT":
                 obj.amount = winning_amount;
                 obj.txn_ref_id = txn_id;
-                obj.description = `${winning_amount} credited for Mines game for bet_id ${id}`;
+                obj.description = `${winning_amount} credited for Plinko game for Round ${id}`;
                 obj.txn_type = 1;
                 break;
             default:
