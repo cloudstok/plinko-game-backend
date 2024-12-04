@@ -1,13 +1,10 @@
 import { appConfig } from "../utilities/app-config.js";
 import { generateUUIDv7 } from "../utilities/common-function.js";
-import { getCache, deleteCache, setCache } from "../utilities/redis-connection.js";
+import { getCache, deleteCache } from "../utilities/redis-connection.js";
 import { createLogger } from "../utilities/logger.js";
-import { PinsData } from "../utilities/helper-function.js";
+import { logEventAndEmitResponse, PinsData } from "../utilities/helper-function.js";
 import { getResult } from "../module/bets/bet-session.js";
-const gameLogger = createLogger('Game', 'jsonl');
 const betLogger = createLogger('Bets', 'jsonl');
-const cashoutLogger = createLogger('Cashout', 'jsonl');
-const cachedGameLogger = createLogger('cachedGame', 'jsonl');
 
 
 export const emitValuesMultiplier = (socket)=> {
@@ -23,10 +20,11 @@ export const placeBet = async(socket, betData) => {
     if(!cachedPlayerDetails) return socket.emit('betError', 'Invalid Player Details');
     const playerDetails = JSON.parse(cachedPlayerDetails);
     const gameLog = { logId: generateUUIDv7(), player: playerDetails, betData};
-    if(Number(playerDetails.balance) < betAmount) return logEventAndEmitResponse(gameLog, 'Insufficient Balance', 'game', socket);
-    if((betAmount < appConfig.minBetAmount) || (betAmount > appConfig.maxBetAmount)) return logEventAndEmitResponse(gameLog, 'Invalid Bet', 'game', socket);
+    if(Number(playerDetails.balance) < betAmount) return logEventAndEmitResponse(gameLog, 'Insufficient Balance', 'bet', socket);
+    if((betAmount < appConfig.minBetAmount) || (betAmount > appConfig.maxBetAmount)) return logEventAndEmitResponse(gameLog, 'Invalid Bet', 'bet', socket);
     const matchId = generateUUIDv7();
     const result = await getResult(matchId, betAmount, pins, color, playerDetails, socket);
+    betLogger.info(JSON.stringify({ ...gameLog, result }))
     socket.emit('result', result);
 };
 
@@ -35,18 +33,3 @@ export const disconnect = async(socket) => {
     console.log("User disconnected:", socket.id);
 };
 
-export const reconnect = async(socket) => {
-    const cachedPlayerDetails = await getCache(`PL:${socket.id}`);
-    if(!cachedPlayerDetails) return socket.disconnect(true);
-    const playerDetails = JSON.parse(cachedPlayerDetails);
-    const cachedGame = await getCache(`GM:${playerDetails.id}`);
-    if(!cachedGame) return;
-    const game = JSON.parse(cachedGame); 
-    cachedGameLogger.info(JSON.stringify({ logId: generateUUIDv7(), playerDetails, game }))
-    socket.emit("game_status", { 
-        matchId: game.matchId,
-        bank: game.bank,
-        revealedCells: game.revealedCells,
-        multiplier: game.multiplier
-    });
-}

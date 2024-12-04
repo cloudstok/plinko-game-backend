@@ -1,4 +1,14 @@
 import { variableConfig } from "./load-config.js";
+import { createLogger } from "./logger.js";
+const failedBetLogger = createLogger('failedBets', 'jsonl');
+
+export const logEventAndEmitResponse = (req, res, event, socket) => {
+  let logData = JSON.stringify({ req, res })
+  if (event === 'bet') {
+    failedBetLogger.error(logData)
+  }
+  return socket.emit('betError', res);
+}
 
 
 const defaultData = {
@@ -22,3 +32,29 @@ const defaultData = {
 export const PinsData = () => {
   return variableConfig.multiplierValues || defaultData;
 };
+
+export const getRandomMultiplier = (pins, color) => {
+
+  const defaultData = PinsData();
+
+  if (!defaultData[pins] || !defaultData[pins][color]) {
+      throw new Error("Invalid pins or color selection.");
+    }
+  
+    const multipliers = defaultData[pins][color];
+  
+    const weights = multipliers.map((value) => (value > 0 ? 1 / value : 0));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  
+    const probabilities = weights.map((weight) => weight / totalWeight);
+  
+    const random = Math.random();
+    let cumulativeProbability = 0;
+  
+    for (let i = 0; i < probabilities.length; i++) {
+      cumulativeProbability += probabilities[i];
+      if (random < cumulativeProbability) {
+        return { multiplier: multipliers[i], index: i };
+      }
+    }
+}
