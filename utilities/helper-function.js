@@ -38,23 +38,30 @@ export const getRandomMultiplier = (pins, color) => {
   const defaultData = PinsData();
 
   if (!defaultData[pins] || !defaultData[pins][color]) {
-      throw new Error("Invalid pins or color selection.");
-    }
-  
-    const multipliers = defaultData[pins][color];
-  
-    const weights = multipliers.map((value) => (value > 0 ? 1 / value : 0));
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  
-    const probabilities = weights.map((weight) => weight / totalWeight);
-  
-    const random = Math.random();
-    let cumulativeProbability = 0;
-  
-    for (let i = 0; i < probabilities.length; i++) {
-      cumulativeProbability += probabilities[i];
-      if (random < cumulativeProbability) {
-        return { multiplier: multipliers[i], index: i };
-      }
-    }
+    throw new Error("Invalid pins or color selection.");
+  }
+
+  const multipliers = defaultData[pins][color];
+  const exps = multipliers.slice(multipliers.length / 2, multipliers.length);
+  const finalData = getMultFromRandomVal(exps, Math.random());
+  const finalIndex = finalData.direction == 'L' ? multipliers.indexOf(finalData.val) : multipliers.lastIndexOf(finalData.val);
+  return {  multiplier: finalData.val, index: finalIndex };
+}
+
+const getMultFromRandomVal = (exps, val) => {
+  const exp = exps.sort((a, b) => a - b);
+  const sum = exp.reduce((acc, num) => acc + num, 0);
+  const perc = exp.map(e => e != 0 ? sum / e : 0);
+  const perSum = perc.reduce((acc, num) => acc + num, 0);
+  const revPer = perc.map(e => e / perSum);
+
+  const direction = Math.random() > 0.5 ? 'L' : 'R';
+  let per = revPer[0];
+  let index = 0;
+  while (val > per) {
+    ++index;
+    per = per + revPer[index];
+  }
+  if (val)
+    return { val: exp[index], direction }
 }
