@@ -19,7 +19,6 @@ export const getResult = async(matchId, betAmount, pins, section, playerDetails,
     const transaction = await updateBalanceFromAccount(updateBalanceData, "DEBIT", playerDetails);
     if (!transaction) return { error: 'Bet Cancelled by Upstream' };
     playerDetails.balance = (playerDetails.balance - betAmount).toFixed(2);
-    await setCache(`PL:${playerDetails.socketId}`, JSON.stringify(playerDetails));
     socket.emit('info', { user_id: playerDetails.userId, operator_id: playerDetails.operatorId, balance: playerDetails.balance });
     const bet_id = `BT:${matchId}:${playerDetails.operatorId}:${playerDetails.userId}:${betAmount}:${pins}:${section}`;
     const multiplierData = getRandomMultiplier(pins, section);
@@ -40,9 +39,7 @@ export const getResult = async(matchId, betAmount, pins, section, playerDetails,
             if (!isTransactionSuccessful) console.error(`Credit failed for user: ${playerDetails.userId} for round ${matchId}`);
             const creditPlayerDetails = await getCache(`PL:${playerDetails.socketId}`);
             if(creditPlayerDetails){
-                let parseduserDetails = JSON.parse(creditPlayerDetails);
-                parseduserDetails.balance = (Number(parseduserDetails.balance) + Number(winAmount)).toFixed(2);
-                await setCache(`PL:${parseduserDetails.socketId}`, JSON.stringify(parseduserDetails));
+                const parseduserDetails = JSON.parse(creditPlayerDetails);
                 socket.emit('info', { user_id: parseduserDetails.userId, operator_id: parseduserDetails.operatorId, balance: parseduserDetails.balance });
             }
         }
@@ -53,6 +50,7 @@ export const getResult = async(matchId, betAmount, pins, section, playerDetails,
             winAmount: winAmount
         });
     }, 6500);
-    
+    playerDetails.balance = (Number(playerDetails.balance) + Number(winAmount)).toFixed(2);
+    await setCache(`PL:${playerDetails.socketId}`, JSON.stringify(playerDetails));
     return { winningMultiplier, index: winningMultiplierIndex, color: section, payout: winAmount };
 }
