@@ -51,7 +51,7 @@ export const getRandomMultiplier = (pins, color) => {
 const getMultFromRandomVal = (exps, val) => {
   const exp = exps.sort((a, b) => a - b);
   const sum = exp.reduce((acc, num) => acc + num, 0);
-  const perc = exp.map(e => e != 0 ? sum / e : 0);
+  const perc = exp.map(e => e != 0 ? sum / e : sum);
   const perSum = perc.reduce((acc, num) => acc + num, 0);
   const revPer = perc.map(e => e / perSum);
 

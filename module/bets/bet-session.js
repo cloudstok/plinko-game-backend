@@ -1,3 +1,4 @@
+import { appConfig } from "../../utilities/app-config.js";
 import { updateBalanceFromAccount } from "../../utilities/common-function.js";
 import { getRandomMultiplier, PinsData } from "../../utilities/helper-function.js";
 import { getCache, setCache } from "../../utilities/redis-connection.js";
@@ -24,7 +25,7 @@ export const getResult = async(matchId, betAmount, pins, section, playerDetails,
     const multiplierData = getRandomMultiplier(pins, section);
     const winningMultiplierIndex = multiplierData.index;
     const winningMultiplier = multiplierData.multiplier;
-    const winAmount = (Number(betAmount) * winningMultiplier).toFixed(2);
+    const winAmount = Math.min((Number(betAmount) * winningMultiplier), Number(appConfig.maxCashoutAmount)).toFixed(2);
     setTimeout(async()=> {
         if(Number(winAmount) > 0){
             const updateBalanceData = {
@@ -51,6 +52,7 @@ export const getResult = async(matchId, betAmount, pins, section, playerDetails,
             multiplier: winningMultiplier,
             winAmount: winAmount
         });
-    }, 6500)
-    return { winningMultiplier, index: winningMultiplierIndex, color: section, payout: winAmount};
+    }, 6500);
+    
+    return { winningMultiplier, index: winningMultiplierIndex, color: section, payout: winAmount };
 }
