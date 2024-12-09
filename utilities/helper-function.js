@@ -34,34 +34,49 @@ export const PinsData = () => {
 };
 
 export const getRandomMultiplier = (pins, color) => {
-
   const defaultData = PinsData();
 
   if (!defaultData[pins] || !defaultData[pins][color]) {
     throw new Error("Invalid pins or color selection.");
   }
 
-  const multipliers = defaultData[pins][color];
-  const exps = multipliers.slice(multipliers.length / 2, multipliers.length);
-  const finalData = getMultFromRandomVal(exps, Math.random());
-  const finalIndex = finalData.direction == 'L' ? multipliers.indexOf(finalData.val) : multipliers.lastIndexOf(finalData.val);
-  return {  multiplier: finalData.val, index: finalIndex };
+  const index = getPlinkoOdds(pins);
+  const multiplier = defaultData[pins][color][index];
+  return { multiplier, index };
 }
 
-const getMultFromRandomVal = (exps, val) => {
-  const exp = exps.sort((a, b) => a - b);
-  const sum = exp.reduce((acc, num) => acc + num, 0);
-  const perc = exp.map(e => e != 0 ? sum / e : sum);
-  const perSum = perc.reduce((acc, num) => acc + num, 0);
-  const revPer = perc.map(e => e / perSum);
-
-  const direction = Math.random() > 0.5 ? 'L' : 'R';
-  let per = revPer[0];
-  let index = 0;
-  while (val > per) {
-    ++index;
-    per = per + revPer[index];
+const pascals = (curRows) => {
+  const numRows = Number(curRows) + 2;
+  if (numRows === 0) return [];
+  if (numRows === 1) return [[1]];
+  let result = [];
+  for (let row = 1; row <= numRows; row++) {
+    let arr = [];
+    for (let col = 0; col < row; col++) {
+      if (col === 0 || col === row - 1) {
+        arr.push(1);
+      } else {
+        arr.push((result[row - 2][col - 1] + result[row - 2][col]));
+      }
+    }
+    result.push(arr);
   }
-  if (val)
-    return { val: exp[index], direction }
-}
+  const sum = 2 ** (numRows - 1);
+  const lastRow = result[numRows - 1];
+  lastRow.splice(numRows / 2, 1);
+  lastRow[numRows / 2 - 1] *= 2;
+  return { number: curRows, sum, lastRow };
+};
+
+const getPlinkoOdds = (pins) => {
+  const pascalsArr = Object.keys(PinsData()).map(pascals);
+  const curMap = pascalsArr.find(e => e.number == pins);
+  const random = Math.floor(Math.random() * curMap.sum) + 1;
+  let per = curMap.lastRow[0];
+  let index = 0;
+  while (per < random) {
+    ++index;
+    per += curMap.lastRow[index];
+  }
+  return index
+};
